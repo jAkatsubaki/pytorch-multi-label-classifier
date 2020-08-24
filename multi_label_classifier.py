@@ -241,7 +241,7 @@ def train(model, criterion, train_set, val_set, opt, labels=None):
         logging.info('End of epoch %d / %d \t Time Taken: %d sec' %
               (epoch, opt.sum_epoch, time.time() - epoch_start_t))
         
-        if epoch % opt.save_epoch_freq == 0:
+        if (epoch+1) % opt.save_epoch_freq == 0:
             logging.info('saving the model at the end of epoch %d, iters %d' %(epoch+1, total_batch_iter))
             save_model(model, opt, epoch+1) 
 
