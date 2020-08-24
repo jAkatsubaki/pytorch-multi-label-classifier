@@ -5,6 +5,9 @@ import copy
 import random
 import logging
 import numpy as np
+from matplotlib import rcParams
+rcParams['font.family'] = 'sans-serif'
+rcParams['font.sans-serif'] = ['Hiragino Maru Gothic Pro', 'Yu Gothic', 'Meirio', 'Takao', 'IPAexGothic', 'IPAPGothic', 'VL PGothic', 'Noto Sans CJK JP']
 import matplotlib.pyplot as plt
 import torch
 import torch.nn as nn
@@ -60,7 +63,7 @@ def forward_batch(model, criterion, inputs, targets, opt, phase):
     return output, loss, loss_list
 
 
-def forward_dataset(model, criterion, data_loader, opt):
+def forward_dataset(model, criterion, data_loader, opt, labels=None):
     sum_batch = 0 
     accuracy = list()
     avg_loss = list()
@@ -75,13 +78,17 @@ def forward_dataset(model, criterion, data_loader, opt):
         output, loss, loss_list = forward_batch(model, criterion, inputs, targets, opt, "Validate")
         batch_accuracy, batch_predictions = calc_accuracy(output, targets, opt.score_thres, opt.top_k)
 
-        plt_title = "sample"
-        print([ii for ii, t in enumerate(targets) if t != 0])
-        print([ii for ii, t in enumerate(batch_predictions) if t[0] == 0])
-        plt.imshow(inputs[0].permute(1,2,0))
-        plt.title(plt_title)
-        plt.show()
-        plt.clf()
+        if opt.mode == "Test":
+            save_test_path = os.path.join(opt.test_dir, "plot")
+            util.mkdir(save_test_path)
+            if labels != None:
+                targets_str = ",".join([labels[ii]["__name__"] for ii, t in enumerate(list(map(lambda x: x.numpy()[0], targets))) if t == 1])
+                predict_str =",".join([labels[ii]["__name__"] for ii, t in enumerate(list(map(lambda x: x[0], batch_predictions))) if t == 1])
+                plt_title = f"Correct: {targets_str}, Predict: {predict_str}"
+                plt.imshow(inputs[0].permute(1,2,0))
+                plt.title(plt_title)
+                plt.savefig(os.path.join(save_test_path, f"test{i:09d}.png"), dpi=200, bbox_inches="tight", pad_inches=0.1)
+                plt.clf()
 
         # accumulate accuracy
         if len(accuracy) == 0:
@@ -249,9 +256,9 @@ def validate(model, criterion, val_set, opt):
     return forward_dataset(model, criterion, val_set, opt)
 
 
-def test(model, criterion, test_set, opt):
+def test(model, criterion, test_set, opt, rid2name):
     logging.info("####################Test Model###################")
-    test_accuracy, test_loss = forward_dataset(model, criterion, test_set, opt)
+    test_accuracy, test_loss = forward_dataset(model, criterion, test_set, opt, labels=rid2name)
     logging.info("data_dir:   " + opt.data_dir + "/TestSet/")
     logging.info("score_thres:"+  str(opt.score_thres))
     for index, item in enumerate(test_accuracy):
@@ -330,7 +337,7 @@ def main():
         train(model, criterion, train_set, val_set, opt, (rid2name, id2rid))
     # Test model
     elif opt.mode == "Test":
-        test(model, criterion, test_set, opt)
+        test(model, criterion, test_set, opt, rid2name)
 
 
 if __name__ == "__main__":
