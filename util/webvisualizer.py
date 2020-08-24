@@ -29,8 +29,8 @@ class WebVisualizer():
         
         if self.use_html:
             self.web_dir = os.path.join(opt.model_dir, "web")
-            self.img_dir = os.path.join(opt.model_dir, "image")
-            print "Create web directory %s ..." %(self.web_dir)
+            self.img_dir = os.path.join(opt.model_dir, "web", "images")
+            print(f"Create web directory {self.web_dir} ...")
             util.mkdirs([self.web_dir, self.img_dir])
             
 

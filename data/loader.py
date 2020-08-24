@@ -6,7 +6,7 @@ import logging
 import collections 
 from torch.utils.data import DataLoader
 
-from dataset import BaseDataset
+from .dataset import BaseDataset
 sys.path.append('../')
 from util.util import rmdir, load_label
 
@@ -31,11 +31,11 @@ class MultiLabelDataLoader():
             logging.info("Split raw data to Train, Val and Test")
             ratios = opt.ratio
             dataset = collections.defaultdict(list)
-            with open(opt.dir + '/data.txt') as d:
+            with open(opt.dir + '/data.txt', encoding="utf-8") as d:
                 for line in d.readlines():
                     line = json.loads(line)
                     # if data has been specified data_type yet, load data as what was specified before
-                    if line.has_key("type"):
+                    if "type" in line:
                         dataset[line["type"]].append(line)
                         continue
                     # specified data_type randomly
@@ -104,7 +104,7 @@ class MultiLabelDataLoader():
         """
         if not os.path.exists(dst_dir):
             os.mkdir(dst_dir)
-        with open(dst_dir + "/data.txt", 'w') as d:
+        with open(dst_dir + "/data.txt", 'w', encoding="utf-8") as d:
             for line in src_data:
                 d.write(json.dumps(line, separators=(',',':'))+'\n')
 

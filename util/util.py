@@ -37,39 +37,39 @@ def rmdir(path):
 
 def print_loss(loss_list, label, epoch=0, batch_iter=0):
     if label == "Test":
-        logging.info("[ %s Loss ] of Test Dataset:" % (label))
+        logging.info(f"[ {label} Loss ] of Test Dataset:")
     else:
-        logging.info("[ %s Loss ] of Epoch %d Batch %d" % (label, epoch, batch_iter))
+        logging.info(f"[ {label} Loss ] of Epoch {epoch} Batch {batch_iter}")
     
     for index, loss in enumerate(loss_list):
         logging.info("----Attribute %d:  %f" %(index, loss))
 
 def print_accuracy(accuracy_list, label, epoch=0, batch_iter=0):
     if label == "Test":
-        logging.info("[ %s Accu ] of Test Dataset:" % (label))
+        logging.info(f"[ {label} Accu ] of Test Dataset:")
     else:
-        logging.info("[ %s Accu ] of Epoch %d Batch %d" %(label, epoch, batch_iter))
+        logging.info(f"[ {label} Accu ] of Epoch {epoch} Batch {batch_iter}")
     
     for index, item in enumerate(accuracy_list):
-        for top_k, value in item.iteritems():
+        for top_k, value in item.items():
             logging.info("----Attribute %d Top%d: %f" %(index, top_k, value["ratio"]))
 
 def opt2file(opt, dst_file):
     args = vars(opt) 
     with open(dst_file, 'wt') as opt_file:
         opt_file.write('------------ Options -------------\n')
-        print '------------ Options -------------'
+        print('------------ Options -------------')
         for k, v in sorted(args.items()):
-            opt_file.write('%s: %s\n' % (str(k), str(v)))
-            print "%s: %s" %(str(k), str(v))
+            opt_file.write(f'{str(k)}: {str(v)}\n')
+            print(f"{str(k)}: {str(v)}")
         opt_file.write('-------------- End ----------------\n')
-        print '-------------- End ----------------'
+        print('-------------- End ----------------')
 
 def load_label(label_file):
     rid2name = list()   # rid: real id, same as the id in label.txt
     id2rid = list()     # id: number from 0 to len(rids)-1 corresponding to the order of rids
     rid2id = list()     
-    with open(label_file) as l:
+    with open(label_file, encoding="utf-8") as l:
         rid2name_dict = collections.defaultdict(str)
         id2rid_dict = collections.defaultdict(str)
         rid2id_dict = collections.defaultdict(str)

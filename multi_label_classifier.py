@@ -5,8 +5,8 @@ import copy
 import random
 import logging
 import numpy as np
+import matplotlib.pyplot as plt
 import torch
-print "Pytorch Version: ", torch.__version__
 import torch.nn as nn
 import torch.optim as optim
 import torch.backends.cudnn as cudnn
@@ -22,7 +22,7 @@ from util.webvisualizer import WebVisualizer
 
 def forward_batch(model, criterion, inputs, targets, opt, phase):
     if opt.cuda:
-        inputs = inputs.cuda(opt.devices[0], async=True)
+        inputs = inputs.cuda(opt.devices[0], non_blocking=True)
 
     if phase in ["Train"]:
         inputs_var = Variable(inputs, requires_grad=True)
@@ -46,7 +46,7 @@ def forward_batch(model, criterion, inputs, targets, opt, phase):
     target_vars = list()
     for index in range(len(targets)):
         if opt.cuda:
-            targets[index] = targets[index].cuda(opt.devices[0], async=True)
+            targets[index] = targets[index].cuda(opt.devices[0], non_blocking=True)
         target_vars.append(Variable(targets[index]))
     loss_list = list()
     loss = Variable(torch.FloatTensor(1)).zero_()
@@ -54,7 +54,7 @@ def forward_batch(model, criterion, inputs, targets, opt, phase):
         loss = loss.cuda(opt.devices[0])
     for index in range(len(targets)):
         sub_loss = criterion(output[index], target_vars[index])
-        loss_list.append(sub_loss.data[0])
+        loss_list.append(sub_loss.data)
         loss += sub_loss
     
     return output, loss, loss_list
@@ -73,16 +73,25 @@ def forward_dataset(model, criterion, data_loader, opt):
         sum_batch += 1
         inputs, targets = data
         output, loss, loss_list = forward_batch(model, criterion, inputs, targets, opt, "Validate")
-        batch_accuracy = calc_accuracy(output, targets, opt.score_thres, opt.top_k)
+        batch_accuracy, batch_predictions = calc_accuracy(output, targets, opt.score_thres, opt.top_k)
+
+        plt_title = "sample"
+        print([ii for ii, t in enumerate(targets) if t != 0])
+        print([ii for ii, t in enumerate(batch_predictions) if t[0] == 0])
+        plt.imshow(inputs[0].permute(1,2,0))
+        plt.title(plt_title)
+        plt.show()
+        plt.clf()
+
         # accumulate accuracy
         if len(accuracy) == 0:
             accuracy = copy.deepcopy(batch_accuracy)
             for index, item in enumerate(batch_accuracy):
-                for k,v in item.iteritems():
+                for k,v in item.items():
                     accuracy[index][k]["ratio"] = v["ratio"]
         else:
             for index, item in enumerate(batch_accuracy):
-                for k,v in item.iteritems():
+                for k,v in item.items():
                     accuracy[index][k]["ratio"] += v["ratio"]
         # accumulate loss
         if len(avg_loss) == 0:
@@ -92,7 +101,7 @@ def forward_dataset(model, criterion, data_loader, opt):
                 avg_loss[index] += loss
     # average on batches
     for index, item in enumerate(accuracy):
-        for k,v in item.iteritems():
+        for k,v in item.items():
             accuracy[index][k]["ratio"] /= float(sum_batch)
     for index in range(len(avg_loss)):
         avg_loss[index] /= float(sum_batch)
@@ -102,6 +111,7 @@ def forward_dataset(model, criterion, data_loader, opt):
 def calc_accuracy(outputs, targets, score_thres, top_k=(1,)):
     max_k = max(top_k)
     accuracy = []
+    predictions = []
     thres_list = eval(score_thres)
     if isinstance(thres_list, float) or isinstance(thres_list, int) :
         thres_list = [eval(score_thres)]*len(targets)
@@ -117,16 +127,18 @@ def calc_accuracy(outputs, targets, score_thres, top_k=(1,)):
         correct = index.eq(target.cpu().view(1,-1).expand_as(index))
         mask = (top_value>=thres_list[i])
         correct = correct*mask
+        predictions.append(index.numpy()[0].tolist())
+        # print(correct[0][0].numpy())
         #print "masked correct: ", correct
         res = defaultdict(dict)
         for k in top_k:
             k = min(k, output.size(1))
-            correct_k = correct[:k].view(-1).float().sum(0)[0]
+            correct_k = correct[:k].view(-1).float().sum(0)
             res[k]["s"] = batch_size
             res[k]["r"] = correct_k
             res[k]["ratio"] = float(correct_k)/batch_size
         accuracy.append(res)
-    return accuracy
+    return accuracy, predictions
 
 
 def train(model, criterion, train_set, val_set, opt, labels=None):
@@ -157,6 +169,7 @@ def train(model, criterion, train_set, val_set, opt, labels=None):
         epoch_batch_iter = 0
         logging.info('Begin of epoch %d' %(epoch))
         for i, data in enumerate(train_set):
+            logging.info(f"Batch {i}")
             iter_start_t = time.time()
             # train 
             inputs, targets = data
@@ -172,7 +185,7 @@ def train(model, criterion, train_set, val_set, opt, labels=None):
             # display train loss and accuracy
             if total_batch_iter % opt.display_train_freq == 0:
                 # accuracy
-                batch_accuracy = calc_accuracy(output, targets, opt.score_thres, opt.top_k) 
+                batch_accuracy = calc_accuracy(output, targets, opt.score_thres, opt.top_k)[0]
                 util.print_loss(loss_list, "Train", epoch, total_batch_iter)
                 util.print_accuracy(batch_accuracy, "Train", epoch, total_batch_iter)
                 if opt.display_id > 0:
@@ -183,13 +196,14 @@ def train(model, criterion, train_set, val_set, opt, labels=None):
                     webvis.plot_points(x_axis, loss_list, "Loss", "Train")
                     webvis.plot_points(x_axis, accuracy_list, "Accuracy", "Train")
             
-            # display train data 
+            # display train data
+            # TODO: OutOfIndex at target_ids = ...
             if total_batch_iter % opt.display_data_freq == 0:
                 image_list = list()
                 show_image_num = int(np.ceil(opt.display_image_ratio * inputs.size()[0]))
                 for index in range(show_image_num): 
                     input_im = util.tensor2im(inputs[index], opt.mean, opt.std)
-                    class_label = "Image_" + str(index) 
+                    class_label = "Image_" + str(index)
                     if labels is not None:
                         target_ids = [targets[i][index] for i in range(opt.class_num)]
                         rids = [id2rid[j][k] for j,k in enumerate(target_ids)]
@@ -242,7 +256,7 @@ def test(model, criterion, test_set, opt):
     logging.info("score_thres:"+  str(opt.score_thres))
     for index, item in enumerate(test_accuracy):
         logging.info("Attribute %d:" %(index))
-        for top_k, value in item.iteritems():
+        for top_k, value in item.items():
             logging.info("----Accuracy of Top%d: %f" %(top_k, value["ratio"])) 
     logging.info("#################Finished Testing################")
 

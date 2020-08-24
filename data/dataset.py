@@ -36,7 +36,7 @@ class BaseDataset(data.Dataset):
         dataset = list()
         if not os.path.exists(data_file):
             return dataset
-        with open(data_file) as d:
+        with open(data_file, encoding="utf-8") as d:
             for line in d.readlines():
                 line = json.loads(line)
                 dataset.append(self.readline(line))
@@ -49,10 +49,10 @@ class BaseDataset(data.Dataset):
     
     def readline(self, line):
         data = [None, None, None]
-        if line.has_key('image_file'):
+        if "image_file" in line:
             data[0] = line["image_file"]
-        if line.has_key('box'):
+        if "box" in line:
             data[1] = line["box"]
-        if line.has_key('id'):
+        if "id" in line:
             data[2] = line["id"]
         return data

@@ -1,7 +1,7 @@
 import torch.nn as nn
 import torch.utils.model_zoo as model_zoo
 import math
-from build_model import LoadPretrainedModel
+from .build_model import LoadPretrainedModel
 
 __all__ = [
     'VGG', 'vgg11', 'vgg11_bn', 'vgg13', 'vgg13_bn', 'vgg16', 'vgg16_bn',
@@ -62,6 +62,7 @@ class VGGTemplet(nn.Module):
     def __init__(self, features):
         super(VGGTemplet, self).__init__()
         self.features = features
+        self.avgpool = nn.AdaptiveAvgPool2d((7, 7))
         self.classifier = nn.Sequential(
             nn.Linear(512 * 7 * 7, 4096),
             nn.ReLU(True),
@@ -75,6 +76,7 @@ class VGGTemplet(nn.Module):
 
     def forward(self, x):
         x = self.features(x)
+        x = self.avgpool(x)
         x = x.view(x.size(0), -1)
         x = self.classifier(x)
         return x

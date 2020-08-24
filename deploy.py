@@ -63,8 +63,8 @@ def main():
         model = model.cuda(opt.devices[0])
         cudnn.benchmark = True
     
-    l = open(test_dir + "/classify_res_data.txt", 'w')
-    with open(opt.classify_dir + "/data.txt") as data:
+    l = open(test_dir + "/classify_res_data.txt", 'w', encoding="utf-8")
+    with open(opt.classify_dir + "/data.txt", encoding="utf-8") as data:
         for num, line in enumerate(data):
             logging.info(str(num+1))
             line = json.loads(line)

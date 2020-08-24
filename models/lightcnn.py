@@ -166,7 +166,7 @@ class network_29layers_v2(nn.Module):
         x = F.dropout(fc, training=self.training)
         
         output = list()
-        for name, fun in self.fc_dict.iteritems():
+        for name, fun in self.fc_dict.items():
             out = fun(x)
             output.append(out)
 
@@ -263,4 +263,4 @@ def LightCNN_29Layers_v2_templet(in_channel, pretrained=False):
 
 if __name__ == "__main__":
     model = LightCNN_29Layers_v2_templet(3)
-    print model
+    print(model)

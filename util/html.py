@@ -1,6 +1,7 @@
 import dominate
 from dominate.tags import *
 import os
+import urllib.parse
 
 
 class HTML:
@@ -37,13 +38,13 @@ class HTML:
                 for im, txt, link in zip(ims, txts, links):
                     with td(style="word-wrap: break-word;", halign="center", valign="top"):
                         with p():
-                            with a(href=os.path.join('images', link)):
-                                img(style="width:%dpx" % width, src=os.path.join('images', im))
+                            with a(href=os.path.join('images', urllib.parse.quote(link))):
+                                img(style=f"width:{width}px", src=os.path.join('images', urllib.parse.quote(im)))
                             br()
                             p(txt)
 
     def save(self):
-        html_file = '%s/index.html' % self.web_dir
+        html_file = f'{self.web_dir}/index.html'
         f = open(html_file, 'wt')
         f.write(self.doc.render())
         f.close()
@@ -57,8 +58,8 @@ if __name__ == '__main__':
     txts = []
     links = []
     for n in range(4):
-        ims.append('image_%d.png' % n)
-        txts.append('text_%d' % n)
-        links.append('image_%d.png' % n)
+        ims.append(f'image_{n}.png')
+        txts.append(f'text_{n}')
+        links.append(f'image_{n}.png')
     html.add_images(ims, txts, links)
     html.save()

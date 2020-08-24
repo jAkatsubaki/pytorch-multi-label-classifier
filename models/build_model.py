@@ -20,7 +20,7 @@ class MultiLabelModel(nn.Module):
 
 def LoadPretrainedModel(model, pretrained_state_dict):
     model_dict = model.state_dict()
-    union_dict = {k : v for k,v in pretrained_state_dict.iteritems() if k in model_dict}
+    union_dict = {k : v for k,v in pretrained_state_dict.items() if k in model_dict}
     model_dict.update(union_dict)
     return model_dict
 
