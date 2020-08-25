@@ -65,6 +65,29 @@ Data Format Explanation.
 - [ ] Add switch to control loss and accuracy curves displaying on one plot or multiple
 - [x] Train and Test Log
 
+## Fork Contibution
+
+- suppoer python v3
+- `multi_label_dataset.py`
+
+you typr `python multi_label_dataset.py --train /tmp/train --test /tmp/test`
+
+```bash
+/tmp
+  |_ train
+      |- label 1
+          |- image001.png
+          |- image002.png
+                 :
+          |_ hogehogeXXX.png
+      |- label 2
+            :
+  |_ test
+      |- label 1
+           :
+```
+
+- plotting predicted output as test
 
 ## Reference
 
