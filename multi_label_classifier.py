@@ -67,6 +67,7 @@ def forward_dataset(model, criterion, data_loader, opt, labels=None):
     sum_batch = 0 
     accuracy = list()
     avg_loss = list()
+    comatrix = None
     for i, data in enumerate(data_loader):
         if opt.mode == "Train":
             if random.random() > opt.validate_ratio:
@@ -82,8 +83,21 @@ def forward_dataset(model, criterion, data_loader, opt, labels=None):
             save_test_path = os.path.join(opt.test_dir, "plot")
             util.mkdir(save_test_path)
             if labels != None:
-                targets_str = ",".join([labels[ii]["__name__"] for ii, t in enumerate(list(map(lambda x: x.numpy()[0], targets))) if t == 1])
-                predict_str =",".join([labels[ii]["__name__"] for ii, t in enumerate(list(map(lambda x: x[0], batch_predictions))) if t == 1])
+                targets_list = list(map(lambda x: x.numpy()[0], targets))
+                targets_str = ",".join([labels[ii]["__name__"] for ii, t in enumerate(targets_list) if t == 1])
+                predict_list = list(map(lambda x: x[0], batch_predictions))
+                predict_str =",".join([labels[ii]["__name__"] for ii, t in enumerate(predict_list) if t == 1])
+
+                if comatrix == None:
+                    comatrix = [[0 for _ in range(len(targets))] for _ in range(len(targets))]
+
+                for idx_t, t in enumerate(targets_list):
+                    if t == 0:
+                        continue
+                    for idx_p, p in enumerate(predict_list):
+                        if p == 1:
+                            comatrix[idx_t][idx_p] += 1
+                    
                 plt_title = f"Correct: {targets_str}, Predict: {predict_str}"
                 plt.imshow(inputs[0].permute(1,2,0))
                 plt.title(plt_title)
@@ -112,6 +126,12 @@ def forward_dataset(model, criterion, data_loader, opt, labels=None):
             accuracy[index][k]["ratio"] /= float(sum_batch)
     for index in range(len(avg_loss)):
         avg_loss[index] /= float(sum_batch)
+    
+    plt.matshow(comatrix)
+    plt.colorbar()
+    plt.xlabel("prediction")
+    plt.ylabel("truth")
+    plt.savefig(os.path.join(opt.test_dir, "acc_matrix"))
     return accuracy, avg_loss
 
 
@@ -124,10 +144,13 @@ def calc_accuracy(outputs, targets, score_thres, top_k=(1,)):
         thres_list = [eval(score_thres)]*len(targets)
 
     for i in range(len(targets)):
+        # i-th class y_true value 
         target = targets[i]
+        # i-th class y_pred value
         output = outputs[i].data
         batch_size = output.size(0)
         curr_k = min(max_k, output.size(1))
+        # predict value with index 0 (false) and 1 (true)
         top_value, index = output.cpu().topk(curr_k, 1)
         index = index.t()
         top_value = top_value.t()
@@ -135,8 +158,6 @@ def calc_accuracy(outputs, targets, score_thres, top_k=(1,)):
         mask = (top_value>=thres_list[i])
         correct = correct*mask
         predictions.append(index.numpy()[0].tolist())
-        # print(correct[0][0].numpy())
-        #print "masked correct: ", correct
         res = defaultdict(dict)
         for k in top_k:
             k = min(k, output.size(1))
